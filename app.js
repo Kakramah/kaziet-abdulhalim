@@ -5,99 +5,115 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------
-    // 1. إدارة حالة الوقود الحية (Fuel Availability State)
+    // 1. حالة الوقود الفعلية (تُقرأ من خدمة التحديث، لا قيم ثابتة)
     // ------------------------------------------------------------
-    const defaultState = {
-        gasoline: {
-            available: true,
-            title: 'بنزين ممتاز',
-            details: 'مضخات رقمية عالية الدقة'
-        },
-        diesel: {
-            available: true,
-            title: 'مازوت ممتاز',
-            details: 'تفريغ وتعبئة سريعة للسيارات والشاحنات'
-        },
-        lastUpdatedMinutes: 12
+    const STATUS_URL = (window.KAZIET_CONFIG && window.KAZIET_CONFIG.statusUrl) || ''; // من config.js
+    const STALE_AFTER_HOURS = 12;   // بعدها تُعرض الحالة "غير مؤكد"
+    const POLL_MS = 120000;         // إعادة الجلب كل دقيقتين
+
+    const BADGE_TEXT = {
+        gasoline: { available: 'متوفر للسيارات', unavailable: 'غير متوفر حالياً' },
+        diesel:   { available: 'متوفر للتعبئة',  unavailable: 'نفد مؤقتاً' }
+    };
+    const NOTE_TEXT = {
+        unavailable: 'نُعلن هنا فور توفره',
+        unknown: 'لم تُحدَّث الحالة مؤخراً، تأكد بالمراسلة قبل الحضور'
     };
 
-    // الحالة الرسمية المعتمدة لمحطة عبد الحليم
-    let fuelState = defaultState;
-    fuelState.gasoline.available = true;
-    fuelState.diesel.available = true;
-    localStorage.setItem('abdulhalim_fuel_state', JSON.stringify(fuelState));
+    const fuels = {};
+    ['gasoline', 'diesel'].forEach(key => {
+        const el = document.getElementById(key + '-widget');
+        const cond = el.querySelector('.fuel-condition');
+        if (!cond.dataset.default) cond.dataset.default = cond.textContent;
+        fuels[key] = { el, cond, badge: el.querySelector('.fuel-status-badge'), defaultNote: cond.dataset.default };
+    });
 
-    const gasolineWidget = document.getElementById('gasoline-widget');
-    const dieselWidget = document.getElementById('diesel-widget');
-    const gasolineToggle = document.getElementById('gasoline-toggle');
-    const dieselToggle = document.getElementById('diesel-toggle');
     const timestampDisplay = document.getElementById('status-timestamp');
     const refreshBtn = document.getElementById('btn-refresh-status');
 
-    function updateUI() {
-        // تحديث البنزين
-        if (fuelState.gasoline.available) {
-            gasolineWidget.classList.add('is-available');
-            gasolineWidget.classList.remove('is-unavailable');
-            gasolineWidget.querySelector('.fuel-status-badge').innerHTML = '<span class="fuel-status-dot"></span> متوفر للسيارات';
-            if (gasolineToggle) gasolineToggle.checked = true;
-        } else {
-            gasolineWidget.classList.remove('is-available');
-            gasolineWidget.classList.add('is-unavailable');
-            gasolineWidget.querySelector('.fuel-status-badge').innerHTML = '<span class="fuel-status-dot"></span> غير متوفر حالياً';
-            if (gasolineToggle) gasolineToggle.checked = false;
-        }
+    let status = null;   // { gasoline, diesel, updatedAt } بعد أول جلب ناجح
+    let loaded = false;
 
-        // تحديث المازوت
-        if (fuelState.diesel.available) {
-            dieselWidget.classList.add('is-available');
-            dieselWidget.classList.remove('is-unavailable');
-            dieselWidget.querySelector('.fuel-status-badge').innerHTML = '<span class="fuel-status-dot"></span> متوفر للتعبئة';
-            if (dieselToggle) dieselToggle.checked = true;
-        } else {
-            dieselWidget.classList.remove('is-available');
-            dieselWidget.classList.add('is-unavailable');
-            dieselWidget.querySelector('.fuel-status-badge').innerHTML = '<span class="fuel-status-dot"></span> نفد مؤقتاً';
-            if (dieselToggle) dieselToggle.checked = false;
-        }
-
-        // تحديث الطابع الزمني
-        timestampDisplay.textContent = `آخر تحديث: منذ ${fuelState.lastUpdatedMinutes} دقيقة`;
-        
-        // حفظ في الذاكرة المحلية
-        localStorage.setItem('abdulhalim_fuel_state', JSON.stringify(fuelState));
+    function arUnit(n, one, two, few, many) {
+        if (n === 1) return `${one}`;
+        if (n === 2) return `${two}`;
+        return n <= 10 ? `${n} ${few}` : `${n} ${many}`;
     }
 
-    // ربط مفاتيح التبديل إن وُجدت (للاستخدام الإداري المستقبلي)
-    if (gasolineToggle) {
-        gasolineToggle.addEventListener('change', (e) => {
-            fuelState.gasoline.available = e.target.checked;
-            fuelState.lastUpdatedMinutes = 1;
-            updateUI();
+    function relativeTime(ts) {
+        const minutes = Math.max(0, Math.floor((Date.now() - ts) / 60000));
+        if (minutes < 1) return 'الآن';
+        if (minutes < 60) return 'منذ ' + arUnit(minutes, 'دقيقة', 'دقيقتين', 'دقائق', 'دقيقة');
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return 'منذ ' + arUnit(hours, 'ساعة', 'ساعتين', 'ساعات', 'ساعة');
+        const days = Math.floor(hours / 24);
+        return 'منذ ' + arUnit(days, 'يوم', 'يومين', 'أيام', 'يوماً');
+    }
+
+    function isFresh() {
+        return !!(status && status.updatedAt &&
+            (Date.now() - status.updatedAt) < STALE_AFTER_HOURS * 3600000);
+    }
+
+    function render() {
+        const fresh = isFresh();
+        Object.keys(fuels).forEach(key => {
+            const f = fuels[key];
+            const value = fresh ? status[key] : 'unknown';
+            const state = (value === 'available' || value === 'unavailable') ? value : 'unknown';
+
+            f.el.classList.toggle('is-available', state === 'available');
+            f.el.classList.toggle('is-unavailable', state === 'unavailable');
+            f.el.classList.toggle('is-unknown', state === 'unknown');
+
+            f.badge.textContent = '';
+            const dot = document.createElement('span');
+            dot.className = 'fuel-status-dot';
+            const label = document.createElement('span');
+            label.textContent = state === 'unknown'
+                ? (loaded ? 'غير مؤكد' : 'جارٍ التحقق…')
+                : BADGE_TEXT[key][state];
+            f.badge.append(dot, label);
+
+            f.cond.textContent = state === 'available' ? f.defaultNote : NOTE_TEXT[state];
         });
+
+        timestampDisplay.textContent = (status && status.updatedAt)
+            ? `آخر تحديث: ${relativeTime(status.updatedAt)}`
+            : (loaded ? 'آخر تحديث: غير معروف' : 'جارٍ التحقق…');
     }
 
-    if (dieselToggle) {
-        dieselToggle.addEventListener('change', (e) => {
-            fuelState.diesel.available = e.target.checked;
-            fuelState.lastUpdatedMinutes = 1;
-            updateUI();
-        });
+    async function loadStatus() {
+        const configured = !!STATUS_URL;
+        if (configured) {
+            try {
+                const res = await fetch(`${STATUS_URL}?t=${Date.now()}`, { cache: 'no-store' });
+                if (!res.ok) throw new Error('bad response');
+                const d = await res.json();
+                status = {
+                    gasoline: d.gasoline,
+                    diesel: d.diesel,
+                    updatedAt: Number(d.updatedAt) || 0
+                };
+            } catch (err) {
+                // نُبقي آخر حالة معروفة؛ إن لم توجد تبقى "غير مؤكد"
+            }
+        }
+        loaded = true;
+        render();
     }
 
-    // زر التحديث اليدوي
-    refreshBtn.addEventListener('click', () => {
+    refreshBtn.addEventListener('click', async () => {
         const icon = refreshBtn.querySelector('svg');
         icon.classList.add('spinning');
-        setTimeout(() => {
-            icon.classList.remove('spinning');
-            fuelState.lastUpdatedMinutes = Math.floor(Math.random() * 5) + 1;
-            updateUI();
-        }, 600);
+        await loadStatus();
+        icon.classList.remove('spinning');
     });
 
-    // تشغيل التحديث الأولي
-    updateUI();
+    render();
+    loadStatus();
+    setInterval(loadStatus, POLL_MS);
+    setInterval(render, 60000);
 
     // ------------------------------------------------------------
     // 2. معاينة الصور بنافذة منبثقة (Lightbox Modal)

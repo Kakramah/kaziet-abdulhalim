@@ -1996,3 +1996,29 @@ input:checked + .slider:before {
         scroll-behavior: auto !important;
     }
 }
+
+/* ------------------------------------------------------------
+   حالة "غير مؤكد" للوحة الوقود + إخفاء ملصقات الجاهزية عند عدم التوفر
+   ------------------------------------------------------------ */
+.fuel-widget.is-unknown {
+    border-color: rgba(245, 158, 11, 0.45);
+    box-shadow: 0 8px 25px -5px rgba(245, 158, 11, 0.3);
+}
+
+.fuel-widget.is-unknown .fuel-icon-wrap svg {
+    color: var(--text-muted);
+}
+
+.fuel-widget.is-unknown .fuel-status-badge {
+    background: rgba(245, 158, 11, 0.15);
+    color: #FBBF24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.fuel-widget.is-unknown .fuel-status-dot {
+    background-color: var(--status-amber);
+}
+
+.fuel-widget:not(.is-available) .fuel-live-pill {
+    display: none;
+}
