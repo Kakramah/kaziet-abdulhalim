@@ -5,9 +5,16 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------
-    // 1. حالة الوقود الفعلية (تُقرأ من خدمة التحديث، لا قيم ثابتة)
+    // 1. نظام جلب البيانات الحية (حالة الوقود + واجهة الموقع) من Supabase
     // ------------------------------------------------------------
-    const STATUS_URL = (window.KAZIET_CONFIG && window.KAZIET_CONFIG.statusUrl) || ''; // من config.js
+    const supabaseUrl = window.KAZIET_CONFIG?.supabaseUrl;
+    const supabaseKey = window.KAZIET_CONFIG?.supabaseKey;
+    let supabaseClient = null;
+    
+    if (supabaseUrl && supabaseKey && window.supabase) {
+        supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+    }
+
     const STALE_AFTER_HOURS = 12;   // بعدها تُعرض الحالة "غير مؤكد"
     const POLL_MS = 120000;         // إعادة الجلب كل دقيقتين
 
@@ -23,9 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const fuels = {};
     ['gasoline', 'diesel'].forEach(key => {
         const el = document.getElementById(key + '-widget');
-        const cond = el.querySelector('.fuel-condition');
-        if (!cond.dataset.default) cond.dataset.default = cond.textContent;
-        fuels[key] = { el, cond, badge: el.querySelector('.fuel-status-badge'), defaultNote: cond.dataset.default };
+        if (el) {
+            const cond = el.querySelector('.fuel-condition');
+            if (!cond.dataset.default) cond.dataset.default = cond.textContent;
+            fuels[key] = { el, cond, badge: el.querySelector('.fuel-status-badge'), defaultNote: cond.dataset.default };
+        }
     });
 
     const timestampDisplay = document.getElementById('status-timestamp');
@@ -66,53 +75,109 @@ document.addEventListener('DOMContentLoaded', () => {
             f.el.classList.toggle('is-unavailable', state === 'unavailable');
             f.el.classList.toggle('is-unknown', state === 'unknown');
 
-            f.badge.textContent = '';
-            const dot = document.createElement('span');
-            dot.className = 'fuel-status-dot';
-            const label = document.createElement('span');
-            label.textContent = state === 'unknown'
-                ? (loaded ? 'غير مؤكد' : 'جارٍ التحقق…')
-                : BADGE_TEXT[key][state];
-            f.badge.append(dot, label);
+            if (f.badge) {
+                f.badge.textContent = '';
+                const dot = document.createElement('span');
+                dot.className = 'fuel-status-dot';
+                const label = document.createElement('span');
+                label.textContent = state === 'unknown'
+                    ? (loaded ? 'غير مؤكد' : 'جارٍ التحقق…')
+                    : BADGE_TEXT[key][state];
+                f.badge.append(dot, label);
+            }
 
-            f.cond.textContent = state === 'available' ? f.defaultNote : NOTE_TEXT[state];
+            if (f.cond) {
+                f.cond.textContent = state === 'available' ? f.defaultNote : NOTE_TEXT[state];
+            }
         });
 
-        timestampDisplay.textContent = (status && status.updatedAt)
-            ? `آخر تحديث: ${relativeTime(status.updatedAt)}`
-            : (loaded ? 'آخر تحديث: غير معروف' : 'جارٍ التحقق…');
+        if (timestampDisplay) {
+            timestampDisplay.textContent = (status && status.updatedAt)
+                ? `آخر تحديث: ${relativeTime(status.updatedAt)}`
+                : (loaded ? 'آخر تحديث: غير معروف' : 'جارٍ التحقق…');
+        }
     }
 
-    async function loadStatus() {
-        const configured = !!STATUS_URL;
-        if (configured) {
-            try {
-                const res = await fetch(`${STATUS_URL}?t=${Date.now()}`, { cache: 'no-store' });
-                if (!res.ok) throw new Error('bad response');
-                const d = await res.json();
-                status = {
-                    gasoline: d.gasoline,
-                    diesel: d.diesel,
-                    updatedAt: Number(d.updatedAt) || 0
-                };
-            } catch (err) {
-                // نُبقي آخر حالة معروفة؛ إن لم توجد تبقى "غير مؤكد"
-            }
+    async function loadSiteData() {
+        if (!supabaseClient) {
+            loaded = true;
+            render();
+            return;
         }
+
+        try {
+            const { data, error } = await supabaseClient.from('site_content').select('*');
+            if (error) throw error;
+            
+            let hasHeroImage = false;
+
+            data.forEach(row => {
+                // تحديث حالة الوقود
+                if (row.id === 'fuel_status' && row.value) {
+                    status = {
+                        gasoline: row.value.gasoline,
+                        diesel: row.value.diesel,
+                        updatedAt: new Date(row.updated_at).getTime()
+                    };
+                }
+                
+                // تحديث صورة الخلفية الرئيسية إذا تم رفع صورة من الأدمن
+                if (row.id === 'hero_image' && row.value && row.value.url) {
+                    hasHeroImage = true;
+                    const heroBg = document.querySelector('.hero-video-backdrop');
+                    const heroVideo = document.getElementById('hero-main-video');
+                    if (heroBg) {
+                        heroBg.style.backgroundImage = `url('${row.value.url}')`;
+                        heroBg.style.backgroundSize = 'cover';
+                        heroBg.style.backgroundPosition = 'center';
+                        heroBg.style.backgroundAttachment = 'scroll';
+                    }
+                    if (heroVideo) {
+                        heroVideo.style.display = 'none'; // إخفاء الفيديو
+                        const btnToggle = document.getElementById('btn-hero-video-toggle');
+                        const btnMute = document.getElementById('btn-hero-video-mute');
+                        if (btnToggle) btnToggle.style.display = 'none';
+                        if (btnMute) btnMute.style.display = 'none';
+                    }
+                }
+            });
+
+            // العودة للفيديو إذا تم حذف الصورة من اللوحة
+            if (!hasHeroImage) {
+                const heroBg = document.querySelector('.hero-video-backdrop');
+                const heroVideo = document.getElementById('hero-main-video');
+                if (heroBg) {
+                    heroBg.style.backgroundImage = 'none';
+                }
+                if (heroVideo) {
+                    heroVideo.style.display = 'block';
+                    const btnToggle = document.getElementById('btn-hero-video-toggle');
+                    const btnMute = document.getElementById('btn-hero-video-mute');
+                    if (btnToggle) btnToggle.style.display = 'inline-flex';
+                    if (btnMute) btnMute.style.display = 'inline-flex';
+                }
+            }
+
+        } catch (err) {
+            console.error('Failed to load data from Supabase:', err);
+        }
+        
         loaded = true;
         render();
     }
 
-    refreshBtn.addEventListener('click', async () => {
-        const icon = refreshBtn.querySelector('svg');
-        icon.classList.add('spinning');
-        await loadStatus();
-        icon.classList.remove('spinning');
-    });
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            const icon = refreshBtn.querySelector('svg');
+            icon.classList.add('spinning');
+            await loadSiteData();
+            icon.classList.remove('spinning');
+        });
+    }
 
     render();
-    loadStatus();
-    setInterval(loadStatus, POLL_MS);
+    loadSiteData();
+    setInterval(loadSiteData, POLL_MS);
     setInterval(render, 60000);
 
     // ------------------------------------------------------------

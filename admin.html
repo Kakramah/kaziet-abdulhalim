@@ -3,148 +3,275 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex, nofollow">
-    <title>تحديث حالة الوقود — كازية عبد الحليم</title>
+    <title>لوحة التحكم الشاملة — كازية عبد الحليم</title>
     <style>
         @font-face { font-family: 'Cairo'; src: url('fonts/Cairo-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
         @font-face { font-family: 'Tajawal'; src: url('fonts/Tajawal-Medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
         :root { --bg:#0B0F17; --surface:#131B2A; --elevated:#1E293B; --text:#F8FAFC; --muted:#94A3B8; --yellow:#FACC15; --green:#22C55E; --red:#EF4444; }
         * { box-sizing: border-box; }
-        body { margin:0; background:var(--bg); color:var(--text); font-family:'Tajawal',sans-serif; font-weight:500; min-height:100vh; padding:1.25rem; }
-        main { max-width:460px; margin:0 auto; }
-        h1 { font-family:'Cairo',sans-serif; font-size:1.4rem; margin:0 0 .25rem; color:var(--yellow); }
-        p.lead { color:var(--muted); margin:0 0 1.5rem; font-size:.95rem; }
-        .card { background:var(--surface); border:1px solid var(--elevated); border-radius:16px; padding:1rem; margin-bottom:1rem; }
-        .card h2 { font-family:'Cairo',sans-serif; font-size:1.1rem; margin:0 0 .75rem; }
-        .pair { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; }
-        .opt { font:inherit; font-size:1.05rem; padding:1rem .5rem; border-radius:12px; border:2px solid var(--elevated); background:var(--elevated); color:var(--text); cursor:pointer; min-height:56px; }
-        .opt[aria-pressed="true"].yes { border-color:var(--green); background:rgba(34,197,94,.18); }
-        .opt[aria-pressed="true"].no { border-color:var(--red); background:rgba(239,68,68,.18); }
-        label.f { display:block; color:var(--muted); font-size:.9rem; margin-bottom:.4rem; }
-        input[type=password] { width:100%; font:inherit; font-size:1rem; padding:.85rem; border-radius:12px; border:1px solid var(--elevated); background:var(--bg); color:var(--text); }
-        .remember { display:flex; gap:.5rem; align-items:center; margin-top:.7rem; color:var(--muted); font-size:.9rem; }
-        button.publish { width:100%; font-family:'Cairo',sans-serif; font-size:1.1rem; padding:1rem; border:0; border-radius:12px; background:var(--yellow); color:#0B0F17; cursor:pointer; min-height:56px; }
-        button.publish:disabled { opacity:.6; cursor:wait; }
-        #msg { min-height:1.5rem; margin-top:1rem; text-align:center; font-size:.95rem; }
-        #msg.ok { color:#4ADE80; } #msg.err { color:#F87171; }
-        #last { color:var(--muted); font-size:.85rem; text-align:center; margin-top:.5rem; }
+        body { margin:0; background:var(--bg); color:var(--text); font-family:'Tajawal',sans-serif; min-height:100vh; padding:1.25rem; }
+        main { max-width:600px; margin:0 auto; }
+        h1, h2 { font-family:'Cairo',sans-serif; color:var(--yellow); margin-top: 0; }
+        h1 { font-size:1.6rem; margin-bottom: 0.5rem; text-align: center; }
+        .card { background:var(--surface); border:1px solid var(--elevated); border-radius:16px; padding:1.5rem; margin-bottom:1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        label { display:block; color:var(--muted); font-size:.9rem; margin-bottom:.5rem; }
+        input[type=email], input[type=password], input[type=text], input[type=file] { width:100%; font:inherit; padding:.85rem; border-radius:12px; border:1px solid var(--elevated); background:var(--bg); color:var(--text); }
+        .btn { width:100%; font-family:'Cairo',sans-serif; font-size:1.1rem; padding:1rem; border:0; border-radius:12px; background:var(--yellow); color:#0B0F17; cursor:pointer; font-weight: bold; transition: opacity 0.2s; }
+        .btn:disabled { opacity:.6; cursor:not-allowed; }
+        .btn-outline { background: transparent; border: 1px solid var(--yellow); color: var(--yellow); }
+        .pair { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-bottom: 1rem;}
+        .opt { font:inherit; font-size:1.05rem; padding:1rem .5rem; border-radius:12px; border:2px solid var(--elevated); background:var(--elevated); color:var(--text); cursor:pointer; transition: all 0.2s;}
+        .opt.active.yes { border-color:var(--green); background:rgba(34,197,94,.18); }
+        .opt.active.no { border-color:var(--red); background:rgba(239,68,68,.18); }
+        .hidden { display: none !important; }
+        #msg { text-align:center; font-size:.95rem; margin-bottom: 1rem; min-height: 20px; font-weight: bold;}
+        .ok { color:#4ADE80; } .err { color:#F87171; }
+        .img-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-top: 10px; display: none; border: 1px solid var(--elevated); }
     </style>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
 </head>
 <body>
+
 <main>
-    <h1>تحديث حالة الوقود</h1>
-    <p class="lead">اختر حالة كل مادة ثم اضغط «نشر الحالة». تظهر فوراً في الموقع.</p>
+    <h1>لوحة الإدارة (CMS)</h1>
+    
+    <div id="msg" class=""></div>
 
-    <section class="card" aria-labelledby="h-g">
-        <h2 id="h-g">بنزين</h2>
-        <div class="pair">
-            <button type="button" class="opt yes" data-fuel="gasoline" data-value="available" aria-pressed="false">متوفر</button>
-            <button type="button" class="opt no" data-fuel="gasoline" data-value="unavailable" aria-pressed="false">نفد</button>
+    <!-- Login Section -->
+    <section id="login-section" class="card">
+        <h2>تسجيل الدخول للمدير</h2>
+        <div class="form-group">
+            <label>البريد الإلكتروني</label>
+            <input type="email" id="login-email" placeholder="admin@example.com" autocomplete="email">
         </div>
-    </section>
-
-    <section class="card" aria-labelledby="h-d">
-        <h2 id="h-d">مازوت</h2>
-        <div class="pair">
-            <button type="button" class="opt yes" data-fuel="diesel" data-value="available" aria-pressed="false">متوفر</button>
-            <button type="button" class="opt no" data-fuel="diesel" data-value="unavailable" aria-pressed="false">نفد</button>
+        <div class="form-group">
+            <label>كلمة السر</label>
+            <input type="password" id="login-pw" autocomplete="current-password">
         </div>
+        <button class="btn" id="btn-login">تسجيل الدخول</button>
     </section>
 
-    <section class="card">
-        <label class="f" for="pw">كلمة السر</label>
-        <input type="password" id="pw" autocomplete="current-password">
-        <label class="remember"><input type="checkbox" id="remember"> تذكّر على هذا الجهاز</label>
-    </section>
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" class="hidden">
+        
+        <!-- Fuel Status -->
+        <section class="card">
+            <h2>حالة الوقود (تحديث فوري)</h2>
+            <label>البنزين</label>
+            <div class="pair">
+                <button class="opt yes" data-fuel="gasoline" data-value="available">متوفر</button>
+                <button class="opt no" data-fuel="gasoline" data-value="unavailable">نفد</button>
+            </div>
+            <label>المازوت</label>
+            <div class="pair">
+                <button class="opt yes" data-fuel="diesel" data-value="available">متوفر</button>
+                <button class="opt no" data-fuel="diesel" data-value="unavailable">نفد</button>
+            </div>
+            <button class="btn" id="btn-update-fuel">نشر حالة الوقود</button>
+        </section>
 
-    <button type="button" class="publish" id="publish">نشر الحالة</button>
-    <div id="msg" role="status" aria-live="polite"></div>
-    <div id="last"></div>
+        <!-- Media Manager -->
+        <section class="card">
+            <h2>مدير الوسائط (تغيير صورة الواجهة)</h2>
+            <div class="form-group">
+                <label>اختر صورة جديدة لكازية عبد الحليم</label>
+                <input type="file" id="hero-image-upload" accept="image/*">
+                <img id="img-preview" class="img-preview" alt="معاينة الصورة">
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+                <button class="btn" id="btn-upload-image">رفع وتغيير الصورة</button>
+                <button class="btn btn-outline" id="btn-revert-image" style="display:none; border-color:var(--red); color:var(--red);">حذف والعودة للفيديو</button>
+            </div>
+        </section>
+
+        <button class="btn btn-outline" id="btn-logout" style="margin-top: 1rem;">تسجيل الخروج</button>
+    </div>
+
 </main>
 
-<script src="config.js"></script>
 <script>
-(function () {
-    const STATUS_URL = (window.KAZIET_CONFIG && window.KAZIET_CONFIG.statusUrl) || '';
-    const state = { gasoline: null, diesel: null };
-    const msg = document.getElementById('msg');
-    const last = document.getElementById('last');
-    const pw = document.getElementById('pw');
-    const remember = document.getElementById('remember');
-    const btn = document.getElementById('publish');
+    // Initialize Supabase Client using config.js
+    const { createClient } = supabase;
+    const client = createClient(window.KAZIET_CONFIG.supabaseUrl, window.KAZIET_CONFIG.supabaseKey);
 
-    try {
-        const saved = localStorage.getItem('kaziet_admin_pw');
-        if (saved) { pw.value = saved; remember.checked = true; }
-    } catch (e) {}
+    const UI = {
+        loginSec: document.getElementById('login-section'),
+        dashSec: document.getElementById('dashboard-section'),
+        msg: document.getElementById('msg'),
+        email: document.getElementById('login-email'),
+        pw: document.getElementById('login-pw'),
+        btnLogin: document.getElementById('btn-login'),
+        btnLogout: document.getElementById('btn-logout'),
+        opts: document.querySelectorAll('.opt'),
+        btnFuel: document.getElementById('btn-update-fuel'),
+        fileInput: document.getElementById('hero-image-upload'),
+        imgPreview: document.getElementById('img-preview'),
+        btnUpload: document.getElementById('btn-upload-image'),
+        btnRevert: document.getElementById('btn-revert-image')
+    };
 
-    function say(text, cls) { msg.textContent = text; msg.className = cls || ''; }
+    let fuelState = { gasoline: 'available', diesel: 'available' };
 
-    function paint() {
-        document.querySelectorAll('.opt').forEach(b => {
-            b.setAttribute('aria-pressed', String(state[b.dataset.fuel] === b.dataset.value));
-        });
+    function showMsg(text, type='ok') {
+        UI.msg.textContent = text;
+        UI.msg.className = type;
+        setTimeout(() => UI.msg.textContent = '', 4000);
     }
 
-    document.querySelectorAll('.opt').forEach(b => {
-        b.addEventListener('click', () => {
-            state[b.dataset.fuel] = b.dataset.value;
-            say('');
-            paint();
-        });
-    });
-
-    function configured() { return !!STATUS_URL; }
-
-    async function loadCurrent() {
-        if (!configured()) { say('رابط الخدمة غير مضبوط بعد في ملف config.js.', 'err'); return; }
-        try {
-            const res = await fetch(`${STATUS_URL}?t=${Date.now()}`, { cache: 'no-store' });
-            const d = await res.json();
-            ['gasoline', 'diesel'].forEach(k => {
-                if (d[k] === 'available' || d[k] === 'unavailable') state[k] = d[k];
-            });
-            if (d.updatedAt) last.textContent = 'آخر نشر: ' + new Date(Number(d.updatedAt)).toLocaleString('ar-SY');
-            paint();
-        } catch (e) {
-            say('تعذّر جلب الحالة الحالية. تحقق من الاتصال.', 'err');
+    // 1. Auth Management
+    async function checkUser() {
+        const { data: { session } } = await client.auth.getSession();
+        if (session) {
+            UI.loginSec.classList.add('hidden');
+            UI.dashSec.classList.remove('hidden');
+            loadData(); // Load data from DB once logged in
+        } else {
+            UI.loginSec.classList.remove('hidden');
+            UI.dashSec.classList.add('hidden');
         }
     }
 
-    btn.addEventListener('click', async () => {
-        if (!configured()) { say('رابط الخدمة غير مضبوط بعد في ملف config.js.', 'err'); return; }
-        if (!state.gasoline || !state.diesel) { say('اختر حالة البنزين والمازوت أولاً.', 'err'); return; }
-        if (!pw.value) { say('أدخل كلمة السر.', 'err'); return; }
+    UI.btnLogin.onclick = async () => {
+        if (!UI.email.value || !UI.pw.value) {
+            showMsg('الرجاء إدخال البريد وكلمة السر', 'err');
+            return;
+        }
+        UI.btnLogin.disabled = true;
+        showMsg('جارِ الدخول...');
+        const { error } = await client.auth.signInWithPassword({
+            email: UI.email.value,
+            password: UI.pw.value
+        });
+        if (error) {
+            showMsg('خطأ في بيانات الدخول!', 'err');
+            console.error(error);
+        } else {
+            showMsg('تم الدخول بنجاح', 'ok');
+            await checkUser();
+        }
+        UI.btnLogin.disabled = false;
+    };
 
-        btn.disabled = true;
-        say('جارٍ النشر…');
-        try {
-            const res = await fetch(STATUS_URL, {
-                method: 'POST',
-                body: JSON.stringify({ password: pw.value, gasoline: state.gasoline, diesel: state.diesel })
+    UI.btnLogout.onclick = async () => {
+        await client.auth.signOut();
+        checkUser();
+    };
+
+    // 2. Load Data from Supabase
+    async function loadData() {
+        const { data, error } = await client.from('site_content').select('*');
+        if (data) {
+            data.forEach(row => {
+                if (row.id === 'fuel_status' && row.value) {
+                    fuelState = row.value;
+                    updateButtons();
+                }
+                if (row.id === 'hero_image' && row.value && row.value.url) {
+                    UI.btnRevert.style.display = 'block'; // Show revert button if image exists
+                }
             });
-            const d = await res.json();
-            if (d.ok) {
-                try {
-                    if (remember.checked) localStorage.setItem('kaziet_admin_pw', pw.value);
-                    else localStorage.removeItem('kaziet_admin_pw');
-                } catch (e) {}
-                say('تم النشر. الحالة ظاهرة الآن في الموقع.', 'ok');
-                last.textContent = 'آخر نشر: ' + new Date(Number(d.updatedAt)).toLocaleString('ar-SY');
-            } else if (d.error === 'unauthorized') {
-                say('كلمة السر غير صحيحة.', 'err');
+        }
+    }
+
+    function updateButtons() {
+        UI.opts.forEach(b => {
+            if (fuelState[b.dataset.fuel] === b.dataset.value) {
+                b.classList.add('active');
             } else {
-                say('لم يُقبل الطلب. حاول مرة أخرى.', 'err');
+                b.classList.remove('active');
             }
-        } catch (e) {
-            say('تعذّر الاتصال. لم تُنشر الحالة، أعد المحاولة.', 'err');
-        } finally {
-            btn.disabled = false;
-        }
+        });
+    }
+
+    UI.opts.forEach(b => {
+        b.onclick = () => {
+            fuelState[b.dataset.fuel] = b.dataset.value;
+            updateButtons();
+        };
     });
 
-    loadCurrent();
-})();
+    UI.btnFuel.onclick = async () => {
+        UI.btnFuel.disabled = true;
+        showMsg('جارِ النشر...');
+        
+        // Upsert allows insert if not exists, or update if exists
+        const { error } = await client.from('site_content').upsert({ 
+            id: 'fuel_status', 
+            value: fuelState 
+        });
+        
+        if (error) {
+            showMsg('فشل التحديث: ' + error.message, 'err');
+        } else {
+            showMsg('تم تحديث حالة الوقود بنجاح وتطبيقها في الموقع!');
+        }
+        UI.btnFuel.disabled = false;
+    };
+
+    // 3. Image Upload (Media Manager)
+    UI.fileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            UI.imgPreview.src = URL.createObjectURL(file);
+            UI.imgPreview.style.display = 'block';
+        }
+    };
+
+    UI.btnUpload.onclick = async () => {
+        const file = UI.fileInput.files[0];
+        if (!file) { showMsg('الرجاء اختيار صورة أولاً', 'err'); return; }
+        
+        UI.btnUpload.disabled = true;
+        showMsg('جارِ رفع الصورة...');
+        
+        // Generate unique filename to avoid caching issues
+        const ext = file.name.split('.').pop();
+        const fileName = `hero_${Date.now()}.${ext}`;
+
+        // Upload to Storage
+        const { data, error } = await client.storage.from('media').upload(fileName, file, { upsert: true });
+        
+        if (error) {
+            showMsg('فشل الرفع: ' + error.message, 'err');
+        } else {
+            // Get public URL
+            const { data: urlData } = client.storage.from('media').getPublicUrl(fileName);
+            // Save URL to site_content table so index.html knows what image to show
+            await client.from('site_content').upsert({ id: 'hero_image', value: { url: urlData.publicUrl } });
+            
+            showMsg('تم تغيير صورة الكازية بنجاح!');
+            UI.fileInput.value = '';
+            UI.imgPreview.style.display = 'none';
+            UI.btnRevert.style.display = 'block'; // Show revert button
+        }
+        UI.btnUpload.disabled = false;
+    };
+
+    // Revert Image (Delete from DB to fall back to default Video)
+    UI.btnRevert.onclick = async () => {
+        if (!confirm('هل أنت متأكد أنك تريد حذف الصورة والعودة لفيديو الخلفية الأصلي؟')) return;
+        
+        UI.btnRevert.disabled = true;
+        showMsg('جارِ الحذف والعودة للفيديو...');
+        
+        // Remove from DB (we just delete the row)
+        const { error } = await client.from('site_content').delete().eq('id', 'hero_image');
+        
+        if (error) {
+            showMsg('فشل الحذف: ' + error.message, 'err');
+            UI.btnRevert.disabled = false;
+        } else {
+            showMsg('تم الحذف! سيعرض الموقع الآن فيديو الخلفية الأصلي.');
+            UI.btnRevert.style.display = 'none';
+            UI.btnRevert.disabled = false;
+        }
+    };
+
+    // Run on startup
+    checkUser();
 </script>
 </body>
 </html>

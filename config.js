@@ -1,3 +1,4 @@
 window.KAZIET_CONFIG = {
-    statusUrl: 'https://script.google.com/macros/s/AKfycbxttGhWulJu1YZYw8q2xazcF5AdC4ufcEj-dupEg6CrJ48vPyXdZ2SNIpRiFfQAv38/exec'
+    supabaseUrl: 'https://wcvjcbnivynzzlmzpfel.supabase.co',
+    supabaseKey: 'sb_publishable_a2mj7pCs0z69nCmAz0nYPw_C3MrQIVe'
 };
