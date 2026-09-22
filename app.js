@@ -196,4 +196,114 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // ------------------------------------------------------------
+    // 4. نظام الحركات التفاعلية (GSAP Animations)
+    // ------------------------------------------------------------
+    if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+
+        // أ. تتابع التحميل (Page Load Sequence)
+        const tlLoad = gsap.timeline();
+        tlLoad.from('.site-header', { y: -30, opacity: 0, duration: 1, ease: 'power3.out' })
+              .from('.hero-title', { y: 20, opacity: 0, duration: 0.8, ease: 'power3.out' }, '-=0.6')
+              .from('.hero-description', { y: 20, opacity: 0, duration: 0.8, ease: 'power3.out' }, '-=0.6')
+              .from('.hero-chip', { y: 20, opacity: 0, duration: 0.6, stagger: 0.1, ease: 'back.out(1.7)' }, '-=0.4')
+              .from('.hero-actions-btns a', { scale: 0.9, opacity: 0, duration: 0.5, stagger: 0.1, ease: 'back.out(1.5)' }, '-=0.2');
+
+        // ب. أنيميشن التمرير (Scroll-triggered)
+        
+        // لوحة الوقود
+        gsap.from('.fuel-dashboard-card', {
+            scrollTrigger: {
+                trigger: '.fuel-dashboard-section',
+                start: 'top 85%',
+                toggleActions: 'play none none reverse'
+            },
+            y: 40,
+            opacity: 0,
+            duration: 0.8,
+            ease: 'power3.out'
+        });
+
+        // كروت الخدمات
+        gsap.from('.service-card', {
+            scrollTrigger: {
+                trigger: '.services-grid',
+                start: 'top 80%',
+                toggleActions: 'play none none reverse'
+            },
+            y: 40,
+            opacity: 0,
+            duration: 0.6,
+            stagger: 0.15,
+            ease: 'power2.out'
+        });
+
+        // قسم الجودة
+        gsap.from('.quality-checklist li', {
+            scrollTrigger: {
+                trigger: '.feature-content',
+                start: 'top 80%',
+                toggleActions: 'play none none reverse'
+            },
+            x: 30, // حركة من اليمين لليسار (متوافق مع RTL)
+            opacity: 0,
+            duration: 0.5,
+            stagger: 0.15,
+            ease: 'power2.out'
+        });
+
+        gsap.from('.feature-image-box', {
+            scrollTrigger: {
+                trigger: '.quality-feature-section',
+                start: 'top 75%',
+                toggleActions: 'play none none reverse'
+            },
+            scale: 0.95,
+            opacity: 0,
+            duration: 1,
+            ease: 'power3.out'
+        });
+
+        // عراقة الطريق
+        gsap.from('.heritage-card', {
+            scrollTrigger: {
+                trigger: '.heritage-cards-grid',
+                start: 'top 80%',
+                toggleActions: 'play none none reverse'
+            },
+            y: 40,
+            opacity: 0,
+            duration: 0.8,
+            stagger: 0.2,
+            ease: 'power3.out'
+        });
+
+        // معرض الصور
+        gsap.from('.gallery-item', {
+            scrollTrigger: {
+                trigger: '.gallery-grid',
+                start: 'top 85%',
+                toggleActions: 'play none none reverse'
+            },
+            scale: 0.95,
+            opacity: 0,
+            duration: 0.6,
+            stagger: 0.1,
+            ease: 'back.out(1.2)'
+        });
+        
+        // تأثير Parallax للفيديو في الخلفية
+        gsap.to('.hero-video-backdrop video', {
+            yPercent: 15,
+            ease: "none",
+            scrollTrigger: {
+                trigger: ".hero-cinematic-section",
+                start: "top top",
+                end: "bottom top",
+                scrub: true
+            } 
+        });
+    }
 });

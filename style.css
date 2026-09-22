@@ -1998,6 +1998,7 @@ input:checked + .slider:before {
 }
 
 /* ------------------------------------------------------------
+
    حالة "غير مؤكد" للوحة الوقود + إخفاء ملصقات الجاهزية عند عدم التوفر
    ------------------------------------------------------------ */
 .fuel-widget.is-unknown {
@@ -2022,3 +2023,56 @@ input:checked + .slider:before {
 .fuel-widget:not(.is-available) .fuel-live-pill {
     display: none;
 }
+
+   تأثيرات حركية دقيقة (Hover Micro-interactions) مضافة للتجربة
+   ------------------------------------------------------------ */
+
+/* تحسين كروت الخدمات عند المرور فوقها */
+.service-card {
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+}
+.service-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 15px rgba(250, 204, 21, 0.1);
+    border-color: rgba(250, 204, 21, 0.3);
+}
+.service-card:hover .service-card-icon {
+    transform: scale(1.1);
+    color: var(--fuel-yellow);
+}
+
+/* تحسين كروت العراقة */
+.heritage-card {
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+.heritage-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+.heritage-card:hover img {
+    transform: scale(1.05);
+    transition: transform 0.6s ease;
+}
+
+/* تحسين معرض الصور */
+.gallery-item {
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+.gallery-item:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(250, 204, 21, 0.2);
+    z-index: 2;
+}
+
+/* تفاعل إضافي لأزرار Hero */
+.hero-chip {
+    transition: all 0.3s ease;
+}
+.hero-chip:hover {
+    background: rgba(250, 204, 21, 0.15);
+    border-color: var(--fuel-yellow);
+    transform: translateY(-3px);
+}
+
+
+
