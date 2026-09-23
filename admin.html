@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم الشاملة — كازية عبد الحليم</title>
+    <title>لوحة التحكم · كازية عبد الحليم</title>
     <style>
         @font-face { font-family: 'Cairo'; src: url('fonts/Cairo-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
         @font-face { font-family: 'Tajawal'; src: url('fonts/Tajawal-Medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
@@ -115,6 +115,19 @@
 
     let fuelState = { gasoline: 'available', diesel: 'available' };
 
+    // يُكتب الصف بالتحديث أولاً لأنه يكفيه إذن UPDATE، ويُدرج إن لم يوجد.
+    // ويُضبط updated_at في كل حفظ، فالموقع يعدّ الحالة «غير مؤكدة» بعد 12 ساعة من آخر تحديث.
+    async function saveRow(id, value) {
+        const row = { value, updated_at: new Date().toISOString() };
+        const upd = await client.from('site_content').update(row).eq('id', id).select('id');
+        if (upd.error) return upd.error.message;
+        if (upd.data && upd.data.length) return null;
+        const ins = await client.from('site_content').insert({ id, ...row }).select('id');
+        if (ins.error) return 'قاعدة البيانات رفضت الحفظ. شغّل ملف fix_admin.sql مرة واحدة في Supabase (' + ins.error.message + ')';
+        if (!ins.data || !ins.data.length) return 'لم يُحفظ شيء. شغّل ملف fix_admin.sql مرة واحدة في Supabase';
+        return null;
+    }
+
     function showMsg(text, type='ok') {
         UI.msg.textContent = text;
         UI.msg.className = type;
@@ -163,14 +176,15 @@
     // 2. Load Data from Supabase
     async function loadData() {
         const { data, error } = await client.from('site_content').select('*');
+        if (error) { showMsg('تعذّر قراءة الحالة الحالية: ' + error.message, 'err'); return; }
         if (data) {
             data.forEach(row => {
                 if (row.id === 'fuel_status' && row.value) {
                     fuelState = row.value;
                     updateButtons();
                 }
-                if (row.id === 'hero_image' && row.value && row.value.url) {
-                    UI.btnRevert.style.display = 'block'; // Show revert button if image exists
+                if (row.id === 'hero_image') {
+                    UI.btnRevert.style.display = (row.value && row.value.url) ? 'block' : 'none';
                 }
             });
         }
@@ -197,16 +211,11 @@
         UI.btnFuel.disabled = true;
         showMsg('جارِ النشر...');
         
-        // Upsert allows insert if not exists, or update if exists
-        const { error } = await client.from('site_content').upsert({ 
-            id: 'fuel_status', 
-            value: fuelState 
-        });
-        
-        if (error) {
-            showMsg('فشل التحديث: ' + error.message, 'err');
+        const err = await saveRow('fuel_status', fuelState);
+        if (err) {
+            showMsg('لم تُنشر الحالة: ' + err, 'err');
         } else {
-            showMsg('تم تحديث حالة الوقود بنجاح وتطبيقها في الموقع!');
+            showMsg('نُشرت الحالة، وتظهر في الموقع خلال دقيقتين أو عند تحديث الصفحة');
         }
         UI.btnFuel.disabled = false;
     };
@@ -239,13 +248,15 @@
         } else {
             // Get public URL
             const { data: urlData } = client.storage.from('media').getPublicUrl(fileName);
-            // Save URL to site_content table so index.html knows what image to show
-            await client.from('site_content').upsert({ id: 'hero_image', value: { url: urlData.publicUrl } });
-            
-            showMsg('تم تغيير صورة الكازية بنجاح!');
-            UI.fileInput.value = '';
-            UI.imgPreview.style.display = 'none';
-            UI.btnRevert.style.display = 'block'; // Show revert button
+            const err = await saveRow('hero_image', { url: urlData.publicUrl });
+            if (err) {
+                showMsg('رُفعت الصورة لكن الموقع لم يتغيّر: ' + err, 'err');
+            } else {
+                showMsg('تغيّرت صورة الواجهة في الموقع');
+                UI.fileInput.value = '';
+                UI.imgPreview.style.display = 'none';
+                UI.btnRevert.style.display = 'block';
+            }
         }
         UI.btnUpload.disabled = false;
     };
@@ -257,14 +268,14 @@
         UI.btnRevert.disabled = true;
         showMsg('جارِ الحذف والعودة للفيديو...');
         
-        // Remove from DB (we just delete the row)
-        const { error } = await client.from('site_content').delete().eq('id', 'hero_image');
+        // يُفرَّغ الرابط بدل حذف الصف، فيكفيه إذن UPDATE
+        const err = await saveRow('hero_image', { url: null });
         
-        if (error) {
-            showMsg('فشل الحذف: ' + error.message, 'err');
+        if (err) {
+            showMsg('لم يُحذف: ' + err, 'err');
             UI.btnRevert.disabled = false;
         } else {
-            showMsg('تم الحذف! سيعرض الموقع الآن فيديو الخلفية الأصلي.');
+            showMsg('عاد الموقع إلى فيديو الخلفية');
             UI.btnRevert.style.display = 'none';
             UI.btnRevert.disabled = false;
         }
