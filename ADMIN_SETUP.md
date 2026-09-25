@@ -6,21 +6,48 @@
 بينما المفترض أن يملك هذا الحق المدير وحده.
 
 الحل: صفة `app_metadata.kaziet_admin = true` لا يستطيع أي مستخدم تعيينها
-بنفسه (لا عبر `updateUser` من العميل، ولا من أي مكان غير SQL Editor بصلاحية
-service role/postgres في لوحة Supabase).
+بنفسه (لا عبر `updateUser` من العميل، ولا من أي مكان غير SQL Editor أو
+Admin API بصلاحية service role/postgres من جهة الخادم).
+
+**ما اختُبر فعلياً وما بقي غير متحقق منه:** قبل فتح PR الترقيع، شُغِّلت
+ملفات SQL هذه (`supabase_setup.sql`، `fix_admin.sql`، وملف الترقيع)
+فعلياً على نسخة Postgres 16 محلية معزولة (لا Supabase، ولا اتصال
+بالإنترنت، ولا لمس أي قاعدة حيّة)، مقابل مخطط مصغّر يحاكي `auth.users`
+و`auth.jwt()` و`storage.objects`، مع تفعيل RLS حقيقي ومحاكاة أدوار
+`anon`/`authenticated` عبر `SET ROLE` و`SET request.jwt.claims` (لا
+كاستعلام postgres مباشر). ثبت فعلياً: نجاح مسار مشروع جديد ومشروع قديم
+بسياساته السابقة، توقف حارس "لا مدير" بـ `ROLLBACK` نظيف بلا تغيير
+جزئي، ورفض/قبول الكتابة تبعاً للدور فعلياً (`UPDATE 0` لمستخدم عادي،
+`UPDATE 1`/`INSERT 1` للمدير)، وتكرار تشغيل الترقيع (idempotency).
+هذا تحقّق حقيقي من منطق SQL وRLS، لا مجرّد قراءة بصرية للبنية.
+
+ما بقي **غير متحقق** لأنه يحتاج مشروع Supabase حيّاً تحديداً: سلوك
+GoTrue/PostgREST الفعلي على نسخة Supabase المُستضافة، إعداد "تسجيل
+مجهول" الفعلي في مشروعكم، وحالة السياسات المطبَّقة فعلياً على قاعدتكم
+الآن قبل التطبيق — التفصيل في قسم خطة الاختبار أدناه.
 
 ## 1. تعيين المدير الحقيقي (قبل تشغيل ملف الترقيع)
 
 1. أنشئ حساب المدير إن لم يكن موجوداً (Authentication → Users → Add user)، أو استخدم حساباً موجوداً بالفعل يسجّل به المدير الدخول من `admin.html`.
-2. في Supabase ← **SQL Editor**، نفّذ (استبدل البريد ببريد المدير الفعلي):
+2. اضبط `kaziet_admin` بإحدى طريقتين، وكلتاهما من جهة الخادم حصراً — لا من كود العميل أبداً:
+   - **SQL Editor** في Supabase (استبدل البريد ببريد المدير الفعلي):
 
-```sql
-UPDATE auth.users
-SET raw_app_meta_data =
-  coalesce(raw_app_meta_data, '{}'::jsonb) || '{"kaziet_admin": true}'::jsonb
-WHERE email = 'admin@example.com';
-```
+     ```sql
+     UPDATE auth.users
+     SET raw_app_meta_data =
+       coalesce(raw_app_meta_data, '{}'::jsonb) || '{"kaziet_admin": true}'::jsonb
+     WHERE email = 'admin@example.com';
+     ```
 
+   - أو **Admin API** الموثوق (سكربت خادم يحمل `service_role` key، لا يُبنى داخل `admin.html` ولا أي ملف يصل المتصفح):
+
+     ```js
+     await supabaseAdmin.auth.admin.updateUserById(userId, {
+       app_metadata: { kaziet_admin: true }
+     });
+     ```
+
+     الطريقتان متكافئتان أمنياً؛ المهم أن التنفيذ يبقى بصلاحية service role/postgres على الخادم، لا بمفتاح anon العام الموجود في `config.js`.
 3. تحقّق:
 
 ```sql
@@ -57,48 +84,106 @@ JWT جديد يحمل الصفة:
 `kaziet_admin` مضبوطة فعلاً في `auth.users`، لأن الـ JWT القديم في الجلسة
 لا يحملها بعد.
 
+**التأخر يعمل في الاتجاهين.** نفس المبدأ عند سحب الصفة: إن أزلت
+`kaziet_admin` من مستخدم كان مديراً، تبقى جلسته الحالية — وJWT الصادر لها
+سابقاً — تحمل الصفة القديمة وتسمح له بالكتابة فعلياً حتى ينتهي عمر الرمز
+(access token، عادة ساعة واحدة افتراضياً في Supabase) أو تُجدَّد الجلسة
+صراحة. إبطال فوري حقيقي يحتاج إنهاء جلسات المستخدم من جهة الخادم
+(`supabaseAdmin.auth.admin.signOut` لكل جلسة، أو تدوير refresh tokens له)
+لا الاكتفاء بتعديل `app_metadata`.
+
 ## 4. خطة الاختبار (بعد التطبيق)
 
-نفّذها من محرّر SQL أو من التطبيق مباشرة، بلا نشر أي مفتاح أو قيمة هوية:
+**تحذير مهم: لا تختبر هذا من SQL Editor بمحاولة `UPDATE`/`INSERT` مباشرة
+على الجداول.** SQL Editor في Supabase يتصل بصلاحية `postgres`
+(superuser)، وRLS لا يُطبَّق على الأدوار التي تملك خاصية `BYPASSRLS` —
+والـ superuser منها دائماً. أي كتابة تنجح هناك لا تثبت شيئاً عن سلوك
+RLS الفعلي؛ ينجح حتى لو كانت السياسات معطوبة تماماً. الإثبات الحقيقي
+لازم يمرّ عبر الدور الفعلي الذي يستخدمه العميل (`anon` أو
+`authenticated`)، وهذا يحتاج أحد مسارين:
+
+**أ. جلسات عميل منفصلة فعلية (الأدق والأوصى به):**
+1. **مجهول** — افتح `admin.html` (أو استدعِ REST API عبر `curl`
+   بمفتاح anon من `config.js`) بلا تسجيل دخول، وحاول قراءة/كتابة.
+2. **مستخدم عادي** — أنشئ حساباً تجريبياً بلا صفة `kaziet_admin`، سجّل
+   دخوله فعلياً من `admin.html`، وحاول تعديل حالة الوقود أو رفع صورة.
+3. **مدير حقيقي** — بعد تحديث الجلسة كما في القسم 3، كرّر نفس المحاولات
+   من نفس الواجهة.
+
+**ب. محاكاة دور/JWT صحيحة داخل SQL Editor (إن تعذّر تسجيل الدخول
+الفعلي)**، لا محاولة `UPDATE` كـ postgres:
+```sql
+SET ROLE authenticated;  -- ليس postgres
+SET request.jwt.claims = '{"app_metadata": {}}';  -- مستخدم عادي
+-- أو '{"app_metadata": {"kaziet_admin": true}}' لمحاكاة المدير
+UPDATE site_content SET value = value WHERE id = 'fuel_status';
+RESET ROLE;
+```
+التحقق الصحيح هنا هو عدد الصفوف المتأثرة (`UPDATE 0` لمستخدم عادي،
+`UPDATE 1` للمدير)، لا مجرّد غياب رسالة خطأ.
 
 | الحالة | العملية | النتيجة المتوقعة |
 |---|---|---|
 | مجهول (anon key، بلا جلسة) | قراءة `site_content` | تنجح (قراءة عامة مقصودة) |
-| مجهول (anon key، بلا جلسة) | تحديث/إدراج في `site_content` أو رفع صورة | **تُرفض** (لا يوجد دور authenticated أصلاً) |
+| مجهول (anon key، بلا جلسة) | تحديث/إدراج في `site_content` أو رفع صورة | **تُرفض** |
 | مستخدم عادي مسجّل دخوله (بلا `kaziet_admin`) | تحديث/إدراج في `site_content` | **تُرفض** — هذا هو الفرق الجوهري عن السلوك القديم |
 | مستخدم عادي مسجّل دخوله (بلا `kaziet_admin`) | رفع صورة إلى `media` | **تُرفض** |
 | المدير الحقيقي (بعد تحديث الجلسة) | تحديث حالة الوقود، رفع صورة، حذف الصورة | تنجح جميعها من `admin.html` كما في السابق |
 
-لاختبار "مستخدم عادي": أنشئ حساباً تجريبياً بلا صفة `kaziet_admin`، سجّل
-دخوله من `admin.html`، وحاول تعديل حالة الوقود — يجب أن يظهر خطأ رفض من
-قاعدة البيانات وليس نجاحاً صامتاً.
+**ج. مراجعة `pg_policies` فعلياً قبل التطبيق وبعده (هذا استعلام قراءة
+فقط على الكتالوج، لا كتابة، فلا مشكلة في تشغيله كـ postgres):**
+```sql
+SELECT schemaname, tablename, policyname, cmd, roles, qual, with_check
+FROM pg_policies
+WHERE tablename IN ('site_content', 'objects')
+ORDER BY tablename, policyname;
+```
+قارن النتيجة قبل التطبيق وبعده على مشروعكم الحي تحديداً: الترقيع يسقط
+أسماء سياسات بعينها (`Allow admin update`، `Allow admin insert`،
+`Admin Image Upload/Update/Delete`). **إن أضاف أحد سابقاً سياسة كتابة
+أخرى بأسماء مختلفة على هذين الجدولين — لم يرصدها هذا الترقيع ولن
+يُسقطها**، فتحقّقوا يدوياً بعد التطبيق أن لا سياسة `INSERT`/`UPDATE`/
+`DELETE` متبقية تتحقق من `auth.role() = 'authenticated'` وحده بلا شرط
+`kaziet_admin`.
 
 **ما لا يمكن اختباره من الكود وحده (يحتاج قاعدة Supabase حيّة):**
-- هل مشروعكم الحي يفعّل "تسجيل مجهول" (Anonymous Sign-ins) فعلاً؟ لم نتحقق من هذا الإعداد ولا من حالة السياسات المطبَّقة فعلياً على القاعدة الحيّة — هذا الترقيع يسدّ الثغرة بصرف النظر عن الجواب.
-- تنفيذ السياسات الفعلي (`EXPLAIN`، سلوك RLS الحقيقي) يحتاج اتصالاً بقاعدة حيّة؛ لم نطبّق أي SQL على الإنتاج ضمن هذه المهمة.
-- لا خط أنابيب CI أو اختبارات آلية في هذا المستودع (مجرّد صفحات ثابتة)؛ التحقق الوحيد المتاح كان فحص بنية SQL يدوياً (راجع قسم الفحص أدناه).
+- هل مشروعكم الحي يفعّل "تسجيل مجهول" (Anonymous Sign-ins) فعلاً؟ لم نتحقق من هذا الإعداد على مشروعكم — الترقيع يسدّ الثغرة بصرف النظر عن الجواب، لكن تأكيد الإعداد نفسه يحتاج لوحة Supabase الحيّة.
+- حالة السياسات المطبَّقة فعلياً على قاعدتكم الحيّة الآن (هل هي فعلاً النسخة القديمة الموصوفة في هذا الملف، أم عُدِّلت يدوياً سابقاً؟) — تحتاج تشغيل استعلام `pg_policies` أعلاه على مشروعكم.
+- سلوك PostgREST/GoTrue الفعلي (رؤوس الطلبات، صياغة أخطاء الرفض في الواجهة) على نسخة Supabase المُستضافة تحديداً.
 
 ## 5. التراجع (Rollback)
 
-إن تعطّلت لوحة الإدارة بعد التطبيق (مثلاً نسيان الخطوة 3):
+**لا يوجد "تراجع" آمن بإعادة فتح الكتابة لكل `auth.role() = 'authenticated'`.**
+هذا ليس تراجعاً بل عودة إلى الثغرة نفسها التي يسدّها هذا الـ PR، فهو غير
+موجود هنا عمداً ولا يُنصح بكتابته يدوياً. إن تعطّلت لوحة الإدارة بعد
+التطبيق، المسار الصحيح تشخيصٌ ثم إصلاحٌ يبقي RLS مقيّداً بصفة المدير:
 
-1. تأكد أولاً أن سبب الرفض هو JWT قديم لا صفة ناقصة فعلاً (كرر فحص الخطوة 1.3، ثم سجّل خروجاً ودخولاً).
-2. إن أردت التراجع الكامل مؤقتاً عن الترقيع (غير مستحسن، يعيد فتح الثغرة):
+### أ. الحالة الشائعة: فشل دخول المدير نفسه
 
-```sql
-BEGIN;
-DROP POLICY IF EXISTS "Admin write update" ON site_content;
-DROP POLICY IF EXISTS "Admin write insert" ON site_content;
-CREATE POLICY "Allow admin update" ON site_content FOR UPDATE USING (auth.role() = 'authenticated');
-CREATE POLICY "Allow admin insert" ON site_content FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+هذا يكاد يكون دائماً JWT قديم أو `app_metadata` غير مضبوطة، لا عطباً في
+السياسات:
 
-DROP POLICY IF EXISTS "Admin Image Upload" ON storage.objects;
-DROP POLICY IF EXISTS "Admin Image Update" ON storage.objects;
-DROP POLICY IF EXISTS "Admin Image Delete" ON storage.objects;
-CREATE POLICY "Admin Image Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media' AND auth.role() = 'authenticated');
-CREATE POLICY "Admin Image Update" ON storage.objects FOR UPDATE USING (bucket_id = 'media' AND auth.role() = 'authenticated');
-CREATE POLICY "Admin Image Delete" ON storage.objects FOR DELETE USING (bucket_id = 'media' AND auth.role() = 'authenticated');
-COMMIT;
-```
+1. تحقّق من `app_metadata` فعلياً (استعلام القسم 1.3) — هل `kaziet_admin`
+   فعلاً `true` لحساب المدير الذي يحاول الدخول؟ إن لم يكن، صحّحه بنفس
+   استعلام `UPDATE` أو عبر Admin API.
+2. جدِّد الجلسة: تسجيل خروج ثم دخول من `admin.html`، أو
+   `client.auth.refreshSession()` (القسم 3). لا تحاول أي تعديل على
+   السياسات قبل تجربة هذا.
+3. تحقّق من عدم انتهاء صلاحية حساب المدير أو تعطيله من Authentication →
+   Users.
 
-3. الأصح دوماً: أبقِ الترقيع مطبَّقاً وأصلح تعيين `kaziet_admin` بدل التراجع عنه.
+### ب. طوارئ حقيقية فقط (تعطّل عام لا يُفسَّر بخطوة أ)
+
+إن استمر التعطّل بعد التأكد من app_metadata وتجديد الجلسة، فالاحتمال
+الأرجح خلل في السياسات نفسها أو في المخطط، لا في صفة مستخدم واحد.
+الإجراء الآمن هو **استعادة لقطة قاعدة بيانات موثوقة** (Point-in-Time
+Recovery أو نسخة احتياطية مأخوذة قبل تطبيق الترقيع، من Supabase ←
+Database → Backups) بدل تعديل السياسات يدوياً تحت الضغط. هذا يعيد
+القاعدة كاملة إلى حالة معروفة ومفحوصة، لا إلى سياسة كتابة مفتوحة
+للجميع. راجع بعد الاستعادة سبب التعطّل الأصلي قبل إعادة تطبيق الترقيع.
+
+### ج. المبدأ العام
+
+الإصلاح الصحيح دائماً هو تصحيح تعيين `kaziet_admin` وتجديد الـ JWT، لا
+تخفيف RLS. أي اقتراح "افتح الكتابة مؤقتاً وأغلقها لاحقاً" هو بالضبط
+النمط الذي أنتج الثغرة الأصلية في هذا المشروع (`fix_admin.sql` القديم).
