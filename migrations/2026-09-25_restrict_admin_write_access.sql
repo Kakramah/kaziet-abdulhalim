@@ -16,6 +16,12 @@
 -- kaziet_admin=true في app_metadata.** التعليمات الكاملة وخطوات الاختبار
 -- والتراجع في ADMIN_SETUP.md. تشغيله قبل ذلك يقفل الكتابة على الجميع دون
 -- استثناء (الحارس أدناه يمنع هذا ويوقف التنفيذ).
+--
+-- ملاحظة انحراف: فحص pg_policies يدوياً على القاعدة الحيّة (قراءة فقط)
+-- كشف سياسة "Allow admin delete" (DELETE بشرط auth.role()='authenticated')
+-- على site_content غير موجودة في أي ملف SQL متتبَّع هنا. أُسقطت أدناه
+-- في القسم 1. راجع ADMIN_SETUP.md لتفاصيل هذا الانحراف وكيفية إعادة
+-- فحصه على مشروعكم قبل الاعتماد على قائمة السياسات المتوقعة هنا.
 
 BEGIN;
 
@@ -41,6 +47,14 @@ AS $$
 $$;
 
 -- 1. site_content: إسقاط السياسات القديمة المتساهلة
+-- "Allow admin delete" موجودة على القاعدة الحيّة فعلياً (رصدها فحص
+-- pg_policies يدوياً) ولم تكن مذكورة في أي ملف SQL متتبَّع هنا — انحراف
+-- بين القاعدة الحيّة والمستودع، لا خطأ في التاريخ المسجَّل. تُسقَط دون
+-- بديل: لا تحتاج admin.html حذف صفوف site_content إطلاقاً (تُفرَّغ
+-- القيم بدل الحذف، انظر app.js/admin.html)، فتبقى عملية DELETE على هذا
+-- الجدول ممنوعة على الجميع بلا استثناء — بلا سياسة تسمح بها صراحة، RLS
+-- يرفضها افتراضياً لكل الأدوار بما فيها المدير.
+DROP POLICY IF EXISTS "Allow admin delete" ON site_content;
 DROP POLICY IF EXISTS "Allow admin update" ON site_content;
 DROP POLICY IF EXISTS "Allow admin insert" ON site_content;
 DROP POLICY IF EXISTS "Admin write update" ON site_content;
