@@ -44,6 +44,7 @@
             </div>
 
             <div class="header-actions">
+                <button type="button" id="admin-open" class="btn-header-admin" hidden>لوحة التحكم</button>
                 <a href="https://www.facebook.com/profile.php?id=61592919249194" target="_blank" rel="noopener noreferrer" class="badge-247" style="background: rgba(37, 99, 235, 0.15); border-color: rgba(37, 99, 235, 0.35); color: #60A5FA; text-decoration: none;" title="صفحة الفيسبوك الرسمية لكازية عبد الحليم">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                     <span>فيسبوك</span>
@@ -584,7 +585,11 @@
             </div>
 
             <div class="footer-bottom">
-                <div>جميع الحقوق محفوظة © 2026 كازية عبد الحليم للمحروقات (مصطفى عبد الحليم) • جبلة، سوريا</div>
+                <div>جميع الحقوق محفوظة © 2026 كازية عبد الحليم للمحروقات (مصطفى عبد الحليم) • جبلة، سوريا
+                    <button type="button" id="admin-lock" class="admin-lock" aria-label="دخول الإدارة" title="دخول الإدارة">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                    </button>
+                </div>
                 <div class="footer-author-box">
                     <span class="author-signature" dir="ltr">@𝓚𝓱𝓪𝓵𝓭𝓸𝓾𝓷𝓐𝓴𝓻𝓪𝓶𝓪𝓱</span>
                     <div class="author-social-chips">
@@ -642,6 +647,46 @@
         </div>
     </div>
 
+    <!-- لوحة المدير: لا يعمل منها شيء إلا بحساب يحمل app_metadata.kaziet_admin (ADMIN_SETUP.md) -->
+    <div id="admin-modal" class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-title" hidden>
+        <div class="admin-card">
+            <button type="button" id="admin-close" class="admin-close" aria-label="إغلاق">&times;</button>
+            <h2 id="admin-title">لوحة التحكم</h2>
+            <p id="admin-msg" class="admin-msg" role="status" aria-live="polite"></p>
+
+            <section id="admin-login" hidden>
+                <label for="admin-email">البريد الإلكتروني</label>
+                <input type="email" id="admin-email" autocomplete="email" dir="ltr">
+                <label for="admin-pw">كلمة السر</label>
+                <input type="password" id="admin-pw" autocomplete="current-password" dir="ltr">
+                <button type="button" id="admin-btn-login" class="admin-btn">دخول</button>
+            </section>
+
+            <section id="admin-panel" hidden>
+                <h3>البنزين</h3>
+                <div class="admin-pair">
+                    <button type="button" class="admin-opt yes" data-fuel="gasoline" data-value="available" aria-pressed="false">متوفر</button>
+                    <button type="button" class="admin-opt no" data-fuel="gasoline" data-value="unavailable" aria-pressed="false">نفد</button>
+                </div>
+                <h3>المازوت</h3>
+                <div class="admin-pair">
+                    <button type="button" class="admin-opt yes" data-fuel="diesel" data-value="available" aria-pressed="false">متوفر</button>
+                    <button type="button" class="admin-opt no" data-fuel="diesel" data-value="unavailable" aria-pressed="false">نفد</button>
+                </div>
+                <button type="button" id="admin-btn-fuel" class="admin-btn">انشر حالة الوقود</button>
+
+                <h3 class="admin-sep">صورة الواجهة</h3>
+                <label for="admin-file">اختر صورة جديدة</label>
+                <input type="file" id="admin-file" accept="image/*">
+                <img id="admin-preview" class="admin-preview" alt="معاينة الصورة المختارة" hidden>
+                <button type="button" id="admin-btn-upload" class="admin-btn">ارفع الصورة وغيّر الواجهة</button>
+                <button type="button" id="admin-btn-revert" class="admin-btn admin-btn-danger" hidden>احذف الصورة وارجع إلى الفيديو</button>
+
+                <button type="button" id="admin-btn-logout" class="admin-btn admin-btn-outline">تسجيل الخروج</button>
+            </section>
+        </div>
+    </div>
+
     <!-- مكتبات GSAP للحركات التفاعلية -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
@@ -650,5 +695,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
     <script src="config.js" defer></script>
     <script src="app.js" defer></script>
+    <script src="admin-panel.js" defer></script>
 </body>
 </html>

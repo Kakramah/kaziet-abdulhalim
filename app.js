@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (supabaseUrl && supabaseKey && window.supabase) {
         supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
     }
+    // يشاركه admin-panel.js فلا تتكرر الجلسة بين عميلين
+    window.KAZIET_CLIENT = supabaseClient;
 
     const POLL_MS = 120000;         // إعادة الجلب كل دقيقتين
 
@@ -168,6 +170,14 @@ document.addEventListener('DOMContentLoaded', () => {
             icon.classList.remove('spinning');
         });
     }
+
+    // لوحة المدير داخل الصفحة تعلن النتيجة هنا فيراها المدير فوراً كما يراها الزبون
+    window.addEventListener('kaziet:fuel', (e) => {
+        status = { gasoline: e.detail.gasoline, diesel: e.detail.diesel, updatedAt: Date.now() };
+        loaded = true;
+        render();
+    });
+    window.addEventListener('kaziet:reload', loadSiteData);
 
     render();
     loadSiteData();

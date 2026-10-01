@@ -2076,3 +2076,168 @@ input:checked + .slider:before {
 
 
 
+
+
+/* ------------------------------------------------------------
+   لوحة المدير داخل الصفحة (admin-panel.js)
+   ------------------------------------------------------------ */
+.btn-header-admin {
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-yellow);
+    background: transparent;
+    color: var(--fuel-yellow);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.btn-header-admin:hover { background: var(--bg-elevated); }
+.btn-header-admin[hidden] { display: none; }
+
+.admin-lock {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-inline-start: 0.4rem;
+    vertical-align: middle;
+    background: none;
+    border: 0;
+    color: var(--text-muted);
+    opacity: 0.45;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+.admin-lock:hover, .admin-lock:focus-visible { opacity: 1; color: var(--fuel-yellow); }
+
+.admin-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 250;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(8, 12, 20, 0.82);
+    overflow-y: auto;
+}
+.admin-modal[hidden] { display: none; }
+
+.admin-card {
+    position: relative;
+    width: min(460px, 100%);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    padding: 1.6rem 1.4rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-yellow);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+}
+.admin-card h2 {
+    margin: 0 0 0.4rem;
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    color: var(--fuel-yellow);
+}
+.admin-card h3 {
+    margin: 1rem 0 0.5rem;
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+.admin-card h3.admin-sep {
+    margin-top: 1.6rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--border-subtle);
+}
+.admin-card label {
+    display: block;
+    margin: 0.9rem 0 0.4rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+.admin-card input[type=email],
+.admin-card input[type=password],
+.admin-card input[type=file] {
+    width: 100%;
+    padding: 0.8rem;
+    font: inherit;
+    color: var(--text-primary);
+    background: var(--bg-base);
+    border: 1px solid var(--bg-elevated);
+    border-radius: var(--radius-md);
+}
+.admin-close {
+    position: absolute;
+    inset-block-start: 0.5rem;
+    inset-inline-start: 0.5rem;
+    width: 44px;
+    height: 44px;
+    font-size: 1.8rem;
+    line-height: 1;
+    color: var(--text-secondary);
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+.admin-close:hover { color: var(--text-primary); }
+
+.admin-msg {
+    min-height: 1.6em;
+    margin: 0 0 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+.admin-msg.ok { color: var(--status-green); }
+.admin-msg.err { color: var(--status-red); }
+
+.admin-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+.admin-opt {
+    min-height: 52px;
+    font: inherit;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border: 2px solid var(--bg-elevated);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.admin-opt.active.yes { border-color: var(--status-green); background: rgba(34, 197, 94, 0.18); }
+.admin-opt.active.no { border-color: var(--status-red); background: rgba(239, 68, 68, 0.18); }
+
+.admin-btn {
+    width: 100%;
+    min-height: 52px;
+    margin-top: 1rem;
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    background: var(--fuel-yellow);
+    border: 0;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+.admin-btn:hover { background: var(--fuel-yellow-hover); }
+.admin-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.admin-btn[hidden] { display: none; }
+.admin-btn-outline { margin-top: 1.6rem; color: var(--fuel-yellow); background: transparent; border: 1px solid var(--border-yellow); }
+.admin-btn-outline:hover { background: var(--bg-elevated); }
+.admin-btn-danger { color: var(--status-red); background: transparent; border: 1px solid var(--status-red); }
+.admin-btn-danger:hover { background: rgba(239, 68, 68, 0.12); }
+.admin-preview {
+    width: 100%;
+    max-height: 180px;
+    margin-top: 0.7rem;
+    object-fit: cover;
+    border: 1px solid var(--bg-elevated);
+    border-radius: var(--radius-sm);
+}
+.admin-preview[hidden] { display: none; }
