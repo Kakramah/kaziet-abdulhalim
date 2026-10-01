@@ -1543,24 +1543,19 @@ input:checked + .slider:before {
     padding-top: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
+    gap: 1.6rem;
     align-items: center;
-    justify-content: space-between;
+    text-align: center;
     font-size: 0.85rem;
     color: var(--text-muted);
 }
 
-@media (min-width: 640px) {
-    .footer-bottom {
-        flex-direction: row;
-    }
-}
-
-.footer-author-box {
+/* كتلة الهوية: عمود واحد في المنتصف، التوقيع ثم العقاب ثم الحسابات أيقونات بلا نص (قواعد الويب 5.13.3) */
+.footer-identity {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     align-items: center;
-    gap: 0.85rem;
+    gap: 1.1rem;
 }
 
 .author-signature {
@@ -1569,46 +1564,38 @@ input:checked + .slider:before {
     font-weight: 700;
     letter-spacing: 0.5px;
     text-shadow: 0 0 10px rgba(250, 204, 21, 0.25);
+    unicode-bidi: isolate;
 }
 
-.author-social-chips {
+.footer-eagle {
+    width: 88px;
+    height: auto;
+    opacity: 0.9;
+}
+
+.social {
     display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
 }
 
-.author-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 0.22rem 0.55rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.76rem;
-    color: var(--text-secondary);
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.author-chip svg {
-    flex-shrink: 0;
+.social a {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
     color: var(--fuel-yellow);
-    opacity: 0.85;
-    transition: transform 0.2s ease;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-.author-chip:hover {
+.social a:hover,
+.social a:focus-visible {
     background: rgba(250, 204, 21, 0.12);
     border-color: var(--border-yellow);
-    color: #fff;
     transform: translateY(-1px);
-}
-
-.author-chip:hover svg {
-    opacity: 1;
-    transform: scale(1.12);
 }
 
 /* ------------------------------------------------------------

@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnFuel = $('admin-btn-fuel');
     const fuelOpts = modal.querySelectorAll('.admin-opt');
     const fileInput = $('admin-file');
-    const preview = $('admin-preview');
+    const previewBox = $('admin-preview-box');
     const btnUpload = $('admin-btn-upload');
     const btnRevert = $('admin-btn-revert');
 
@@ -160,9 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- صورة الواجهة
     fileInput.addEventListener('change', () => {
         const file = fileInput.files[0];
+        previewBox.textContent = '';
         if (file) {
-            preview.src = URL.createObjectURL(file);
-            preview.hidden = false;
+            const img = document.createElement('img');
+            img.className = 'admin-preview';
+            img.alt = 'معاينة الصورة المختارة';
+            img.src = URL.createObjectURL(file);
+            previewBox.append(img);
         }
     });
 
@@ -184,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 showMsg('تغيّرت صورة الواجهة');
                 fileInput.value = '';
-                preview.hidden = true;
+                previewBox.textContent = '';
                 btnRevert.hidden = false;
                 window.dispatchEvent(new Event('kaziet:reload'));
             }
