@@ -80,7 +80,11 @@
             <div class="container hero-cinematic-container">
                 <!-- شارة المحطة النموذجية المعتمدة -->
                 <div class="hero-pill">
-                    <span class="pulse-dot"></span>
+                    <!-- ضوءان حيّان: الأول للبنزين والثاني للمازوت، يتبعان لوحة التوفر (app.js) -->
+                    <span class="fuel-lights" role="group" aria-label="توفر الوقود الآن">
+                        <span class="fuel-light" data-fuel="gasoline" role="img" aria-label="البنزين: جارٍ التحقق" title="البنزين: جارٍ التحقق"><i aria-hidden="true"></i><b aria-hidden="true">ب</b></span>
+                        <span class="fuel-light" data-fuel="diesel" role="img" aria-label="المازوت: جارٍ التحقق" title="المازوت: جارٍ التحقق"><i aria-hidden="true"></i><b aria-hidden="true">م</b></span>
+                    </span>
                     <span>محطة الوقود النموذجية المعتمدة في جبلة • طريق الساحل الدولي</span>
                 </div>
 

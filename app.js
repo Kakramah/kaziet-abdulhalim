@@ -85,6 +85,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (f.cond) {
                 f.cond.textContent = state === 'available' ? f.defaultNote : NOTE_TEXT[state];
             }
+
+            // ضوء الوقود في شارة الواجهة يتبع الحالة نفسها
+            const light = document.querySelector('.fuel-light[data-fuel="' + key + '"]');
+            if (light) {
+                light.classList.toggle('is-available', state === 'available');
+                light.classList.toggle('is-unavailable', state === 'unavailable');
+                light.classList.toggle('is-unknown', state === 'unknown');
+                const word = state === 'available' ? 'متوفر' : state === 'unavailable' ? 'نفد' : (loaded ? 'غير مؤكد' : 'جارٍ التحقق');
+                const label = (key === 'gasoline' ? 'البنزين' : 'المازوت') + ': ' + word;
+                light.setAttribute('aria-label', label);
+                light.title = label;
+            }
         });
 
         if (timestampDisplay) {
