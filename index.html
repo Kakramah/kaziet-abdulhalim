@@ -21,7 +21,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
     <!-- ورقة الأنماط -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20261001b">
 </head>
 <body>
 
@@ -80,10 +80,10 @@
             <div class="container hero-cinematic-container">
                 <!-- شارة المحطة النموذجية المعتمدة -->
                 <div class="hero-pill">
-                    <!-- ضوءان حيّان: الأول للبنزين والثاني للمازوت، يتبعان لوحة التوفر (app.js) -->
+                    <!-- ضوءان حيّان: الأول للبنزين (G) والثاني للمازوت (D)، يتبعان لوحة التوفر (app.js) -->
                     <span class="fuel-lights" role="group" aria-label="توفر الوقود الآن">
-                        <span class="fuel-light" data-fuel="gasoline" role="img" aria-label="البنزين: جارٍ التحقق" title="البنزين: جارٍ التحقق"><i aria-hidden="true"></i><b aria-hidden="true">ب</b></span>
-                        <span class="fuel-light" data-fuel="diesel" role="img" aria-label="المازوت: جارٍ التحقق" title="المازوت: جارٍ التحقق"><i aria-hidden="true"></i><b aria-hidden="true">م</b></span>
+                        <span class="fuel-light" data-fuel="gasoline" role="img" aria-label="البنزين: جارٍ التحقق" title="البنزين: جارٍ التحقق"><i aria-hidden="true"></i><b aria-hidden="true" dir="ltr">G</b></span>
+                        <span class="fuel-light" data-fuel="diesel" role="img" aria-label="المازوت: جارٍ التحقق" title="المازوت: جارٍ التحقق"><i aria-hidden="true"></i><b aria-hidden="true" dir="ltr">D</b></span>
                     </span>
                     <span>محطة الوقود النموذجية المعتمدة في جبلة • طريق الساحل الدولي</span>
                 </div>
@@ -697,8 +697,8 @@
 
     <!-- Supabase JS & Config -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
-    <script src="config.js" defer></script>
-    <script src="app.js" defer></script>
-    <script src="admin-panel.js" defer></script>
+    <script src="config.js?v=20261001b" defer></script>
+    <script src="app.js?v=20261001b" defer></script>
+    <script src="admin-panel.js?v=20261001b" defer></script>
 </body>
 </html>

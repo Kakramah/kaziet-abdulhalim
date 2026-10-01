@@ -2244,7 +2244,7 @@ input:checked + .slider:before {
 
 
 /* ------------------------------------------------------------
-   ضوءا الوقود في شارة الواجهة: ب للبنزين وم للمازوت
+   ضوءا الوقود في شارة الواجهة: G للبنزين (Gasoline) وD للمازوت (Diesel)
    الأخضر متوفر: دائرة ممتلئة تومض. الأحمر نفد: حلقة فارغة ثابتة. الكهرماني غير مؤكد.
    الامتلاء والوميض يفرّقان الحالة لمن لا يميّز الأحمر من الأخضر.
    ------------------------------------------------------------ */
@@ -2267,8 +2267,11 @@ input:checked + .slider:before {
     box-shadow: 0 0 10px var(--light);
 }
 .fuel-light b {
+    font-family: var(--font-heading);
     font-size: 0.95em;
+    font-weight: 700;
     line-height: 1;
+    letter-spacing: 0.02em;
     color: var(--text-primary);
 }
 .fuel-light.is-available { --light: var(--status-green); }
