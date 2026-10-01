@@ -116,7 +116,7 @@
     let fuelState = { gasoline: 'available', diesel: 'available' };
 
     // يُكتب الصف بالتحديث أولاً لأنه يكفيه إذن UPDATE، ويُدرج إن لم يوجد.
-    // ويُضبط updated_at في كل حفظ، فالموقع يعدّ الحالة «غير مؤكدة» بعد 12 ساعة من آخر تحديث.
+    // ويُضبط updated_at في كل حفظ ليظهر للزائر سطر «آخر تحديث»؛ والحالة تبقى كما حُفظت إلى أن يغيّرها المدير.
     async function saveRow(id, value) {
         const row = { value, updated_at: new Date().toISOString() };
         const upd = await client.from('site_content').update(row).eq('id', id).select('id');
