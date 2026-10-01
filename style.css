@@ -2241,3 +2241,44 @@ input:checked + .slider:before {
     border-radius: var(--radius-sm);
 }
 .admin-preview[hidden] { display: none; }
+
+
+/* ------------------------------------------------------------
+   ضوءا الوقود في شارة الواجهة: ب للبنزين وم للمازوت
+   الأخضر متوفر: دائرة ممتلئة تومض. الأحمر نفد: حلقة فارغة ثابتة. الكهرماني غير مؤكد.
+   الامتلاء والوميض يفرّقان الحالة لمن لا يميّز الأحمر من الأخضر.
+   ------------------------------------------------------------ */
+.fuel-lights {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+.fuel-light {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    --light: var(--status-amber);
+}
+.fuel-light i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--light);
+    box-shadow: 0 0 10px var(--light);
+}
+.fuel-light b {
+    font-size: 0.95em;
+    line-height: 1;
+    color: var(--text-primary);
+}
+.fuel-light.is-available { --light: var(--status-green); }
+.fuel-light.is-available i { animation: pulse 2s infinite ease-in-out; }
+.fuel-light.is-unavailable { --light: var(--status-red); }
+.fuel-light.is-unavailable i {
+    width: 11px;
+    height: 11px;
+    background: transparent;
+    border: 2px solid var(--light);
+}
+.fuel-light.is-unavailable b { color: var(--text-secondary); }
+.fuel-light.is-unknown i { opacity: 0.7; }
