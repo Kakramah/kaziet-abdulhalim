@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
         supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
     }
 
-    const STALE_AFTER_HOURS = 12;   // بعدها تُعرض الحالة "غير مؤكد"
     const POLL_MS = 120000;         // إعادة الجلب كل دقيقتين
 
     const BADGE_TEXT = {
@@ -59,16 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'منذ ' + arUnit(days, 'يوم', 'يومين', 'أيام', 'يوماً');
     }
 
-    function isFresh() {
-        return !!(status && status.updatedAt &&
-            (Date.now() - status.updatedAt) < STALE_AFTER_HOURS * 3600000);
-    }
-
     function render() {
-        const fresh = isFresh();
+        // الحالة تبقى كما حفظها المدير إلى أن يغيّرها من لوحة التحكم؛ لا تنتهي صلاحيتها بالوقت.
         Object.keys(fuels).forEach(key => {
             const f = fuels[key];
-            const value = fresh ? status[key] : 'unknown';
+            const value = status ? status[key] : 'unknown';
             const state = (value === 'available' || value === 'unavailable') ? value : 'unknown';
 
             f.el.classList.toggle('is-available', state === 'available');
